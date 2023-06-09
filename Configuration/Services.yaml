@@ -1,0 +1,20 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Smic\DynamicRoutingPages\:
+    resource: '../Classes/*'
+
+  Smic\DynamicRoutingPages\EventListener\SiteConfigurationListener:
+    tags:
+      - name: event.listener
+        identifier: 'smic-drp-site-configuration'
+        method: modifyConfiguration
+        event: Smic\DynamicRoutingPages\Event\AfterAllSiteConfigurationLoadedFromFilesEvent
+
+  Smic\DynamicRoutingPages\Xclass\SiteConfiguration:
+    arguments:
+      $coreCache: '@cache.core'
+      $configPath: "%env(TYPO3:configPath)%/sites"

@@ -2,7 +2,8 @@
 declare(strict_types=1);
 namespace Smic\DynamicRoutingPages\Xclass;
 
-use Smic\DynamicRoutingPages\ConfigurationModifier;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Smic\DynamicRoutingPages\Event\AfterAllSiteConfigurationLoadedFromFilesEvent;
 use TYPO3\CMS\Core\Cache\Frontend\PhpFrontend;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -15,7 +16,7 @@ class SiteConfiguration extends \TYPO3\CMS\Core\Configuration\SiteConfiguration
 {
     protected PhpFrontend $cache;
 
-    public function __construct(string $configPath)
+    public function __construct(string $configPath, PhpFrontend $coreCache = null)
     {
         parent::__construct($configPath);
         if (!isset($this->cache)) {
@@ -30,7 +31,12 @@ class SiteConfiguration extends \TYPO3\CMS\Core\Configuration\SiteConfiguration
             return $siteConfiguration;
         }
         $siteConfiguration = parent::getAllSiteConfigurationFromFiles($useCache);
-        $siteConfiguration = ConfigurationModifier::modifyConfiguration($siteConfiguration);
+        $eventDispatcher = GeneralUtility::getContainer()->get(EventDispatcherInterface::class);
+        /** @var AfterAllSiteConfigurationLoadedFromFilesEvent $event */
+        $event = $eventDispatcher->dispatch(
+            new AfterAllSiteConfigurationLoadedFromFilesEvent($siteConfiguration)
+        );
+        $siteConfiguration = $event->getSiteConfiguration();
         $this->cache->set($this->cacheIdentifier, 'return ' . var_export($siteConfiguration, true) . ';');
 
         return $siteConfiguration;
